@@ -82,12 +82,7 @@ cd pokedex_menos_pokedex_que_tem
 flutter pub get
 ```
 
-### 3. Configure as credenciais do Spotify
-As credenciais já estão configuradas no código:
-- Client ID: `c1a33f5d7ac24544b4b6e931dfc7cfef`
-- Client Secret: `ca9aa91d8a584f66bd29960b75a502f7`
-
-### 4. Execute o aplicativo
+### 3. Execute o aplicativo
 ```bash
 flutter run
 ```
