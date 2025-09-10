@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import '../services/pokedex_provider.dart';
 import '../widgets/artist_card.dart';
 import '../widgets/type_badge.dart';
+import '../widgets/responsive_widgets.dart';
 import '../utils/constants.dart';
+import '../utils/rate_limit_config.dart';
+import '../utils/responsive_layout.dart';
 import 'artist_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -49,31 +52,33 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: PokedexColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Cabeçalho moderno da Pokedex
-            _buildModernHeader(),
+        child: ResponsiveContainer(
+          child: Column(
+            children: [
+              // Cabeçalho moderno da Pokedex
+              _buildModernHeader(),
 
-            // Barra de busca moderna
-            _buildModernSearchBar(),
+              // Barra de busca moderna
+              _buildModernSearchBar(),
 
-            // Conteúdo principal
-            Expanded(
-              child: Consumer<PokedexProvider>(
-                builder: (context, provider, child) {
-                  if (provider.isLoading) {
-                    return _buildModernLoadingState();
-                  }
+              // Conteúdo principal
+              Expanded(
+                child: Consumer<PokedexProvider>(
+                  builder: (context, provider, child) {
+                    if (provider.isLoading) {
+                      return _buildModernLoadingState();
+                    }
 
-                  if (_showSearchResults) {
-                    return _buildSearchResults(provider);
-                  } else {
-                    return _buildPokedexContent(provider);
-                  }
-                },
+                    if (_showSearchResults) {
+                      return _buildSearchResults(provider);
+                    } else {
+                      return _buildPokedexContent(provider);
+                    }
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -82,9 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildModernHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: PokedexDimensions.paddingLarge,
-        vertical: PokedexDimensions.paddingMedium,
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveLayout.getSpacing(context, PokedexDimensions.paddingLarge),
+        vertical: ResponsiveLayout.getSpacing(context, PokedexDimensions.paddingMedium),
       ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -95,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
         boxShadow: [
           BoxShadow(
             color: PokedexColors.deepBlue.withOpacity(0.3),
-            blurRadius: PokedexDimensions.headerElevation,
+            blurRadius: ResponsiveLayout.getSpacing(context, PokedexDimensions.headerElevation),
             offset: const Offset(0, 4),
           ),
         ],
@@ -106,38 +111,39 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               // Ícone da Pokébola
               Container(
-                width: 40,
-                height: 40,
+                width: ResponsiveLayout.getSpacing(context, 40),
+                height: ResponsiveLayout.getSpacing(context, 40),
                 decoration: BoxDecoration(
                   color: PokedexColors.vibrantYellow,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(ResponsiveLayout.getSpacing(context, 20)),
                   border: Border.all(color: PokedexColors.pureWhite, width: 2),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.music_note,
                   color: PokedexColors.pureWhite,
-                  size: 24,
+                  size: ResponsiveLayout.getIconSize(context, 24),
                 ),
               ),
-              const SizedBox(width: PokedexDimensions.paddingMedium),
+              SizedBox(width: ResponsiveLayout.getSpacing(context, PokedexDimensions.paddingMedium)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    ResponsiveText(
                       'POKÉDEX MUSICAL',
                       style: PokedexTextStyles.displayTitle.copyWith(
                         color: PokedexColors.pureWhite,
-                        fontSize: 24,
+                        fontSize: ResponsiveLayout.getFontSize(context, 24),
                       ),
                     ),
                     Consumer<PokedexProvider>(
                       builder: (context, provider, child) {
                         final stats = provider.getPokedexStats();
-                        return Text(
+                        return ResponsiveText(
                           '${stats['total']} Artistas Descobertos',
                           style: PokedexTextStyles.caption.copyWith(
                             color: PokedexColors.pureWhite.withOpacity(0.9),
+                            fontSize: ResponsiveLayout.getFontSize(context, 14),
                           ),
                         );
                       },
@@ -150,10 +156,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: () {
                   // TODO: Implementar filtros
                 },
-                icon: const Icon(
+                icon: Icon(
                   Icons.filter_list,
                   color: PokedexColors.pureWhite,
-                  size: 28,
+                  size: ResponsiveLayout.getIconSize(context, 28),
                 ),
               ),
             ],
@@ -165,19 +171,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildModernSearchBar() {
     return Container(
-      margin: const EdgeInsets.all(PokedexDimensions.paddingMedium),
-      padding: const EdgeInsets.symmetric(
-        horizontal: PokedexDimensions.paddingMedium,
+      margin: EdgeInsets.all(ResponsiveLayout.getSpacing(context, PokedexDimensions.paddingMedium)),
+      padding: EdgeInsets.symmetric(
+        horizontal: ResponsiveLayout.getSpacing(context, PokedexDimensions.paddingMedium),
       ),
       decoration: BoxDecoration(
         color: PokedexColors.pureWhite,
         borderRadius: BorderRadius.circular(
-          PokedexDimensions.borderRadiusXLarge,
+          ResponsiveLayout.getSpacing(context, PokedexDimensions.borderRadiusXLarge),
         ),
         boxShadow: [
           BoxShadow(
             color: PokedexColors.deepBlue.withOpacity(0.1),
-            blurRadius: 12,
+            blurRadius: ResponsiveLayout.getSpacing(context, 12),
             offset: const Offset(0, 4),
           ),
         ],
@@ -194,12 +200,12 @@ class _HomeScreenState extends State<HomeScreen> {
           prefixIcon: Icon(
             Icons.search,
             color: PokedexColors.vibrantYellow,
-            size: 24,
+            size: ResponsiveLayout.getIconSize(context, 24),
           ),
           suffixIcon: Icon(
             Icons.music_note,
             color: PokedexColors.textLight,
-            size: 20,
+            size: ResponsiveLayout.getIconSize(context, 20),
           ),
         ),
         style: PokedexTextStyles.body,
@@ -232,9 +238,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: PokedexDimensions.paddingMedium),
           Text(
-            PokedexStrings.loadingMessage,
+            RateLimitConfig.searchMessage,
             style: PokedexTextStyles.body.copyWith(
               color: PokedexColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: PokedexDimensions.paddingSmall),
+          Text(
+            RateLimitConfig.searchSubMessage,
+            style: PokedexTextStyles.small.copyWith(
+              color: PokedexColors.textLight,
             ),
           ),
         ],
@@ -352,8 +365,8 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 120,
-            height: 120,
+            width: 90,
+            height: 90,
             decoration: BoxDecoration(
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(60),
@@ -395,7 +408,7 @@ class _HomeScreenState extends State<HomeScreen> {
         boxShadow: [
           BoxShadow(
             color: PokedexColors.deepBlue.withOpacity(0.1),
-            blurRadius: 12,
+            blurRadius: ResponsiveLayout.getSpacing(context, 12),
             offset: const Offset(0, 4),
           ),
         ],

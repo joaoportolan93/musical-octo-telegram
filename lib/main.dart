@@ -1,9 +1,39 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'services/pokedex_provider.dart';
 import 'screens/home_screen.dart';
+import 'utils/debug_config.dart';
 
 void main() {
+  // Configurações para reduzir erros do DebugService
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializar configurações de debug
+  DebugConfig.initialize();
+  
+  // Suprimir logs específicos do DebugService
+  if (kDebugMode) {
+    // Redirecionar debugPrint para filtrar logs problemáticos
+    debugPrint = (String? message, {int? wrapWidth}) {
+      if (message != null && 
+          !message.contains('DebugService') && 
+          !message.contains('Cannot send Null') &&
+          !message.contains('Error serving requests')) {
+        print(message);
+      }
+    };
+    
+    // Configurar para reduzir spam de logs
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+    );
+  }
+  
   runApp(const PokedexMusicalApp());
 }
 
@@ -17,6 +47,19 @@ class PokedexMusicalApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Pokedex Musical',
         debugShowCheckedModeBanner: false,
+        // Configurações para reduzir erros do DebugService
+        builder: (context, child) {
+          // Interceptar e filtrar erros de debug
+          ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
+            // Filtrar erros específicos do DebugService
+            if (errorDetails.exception.toString().contains('DebugService') ||
+                errorDetails.exception.toString().contains('Cannot send Null')) {
+              return const SizedBox.shrink(); // Não mostrar esses erros
+            }
+            return ErrorWidget(errorDetails.exception);
+          };
+          return child!;
+        },
         theme: ThemeData(
           primarySwatch: Colors.red,
           primaryColor: Colors.red[600],

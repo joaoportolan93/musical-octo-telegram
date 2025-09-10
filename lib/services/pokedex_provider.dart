@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/artist.dart';
+import '../utils/rate_limit_config.dart';
+import '../utils/debug_config.dart';
 import 'spotify_service.dart';
 
 class PokedexProvider extends ChangeNotifier {
@@ -11,6 +14,9 @@ class PokedexProvider extends ChangeNotifier {
   bool _isLoading = false;
   String _searchQuery = '';
   int _nextArtistNumber = 1;
+  
+  // Debouncing para busca
+  Timer? _searchDebounceTimer;
 
   // Getters
   List<Artist> get discoveredArtists => _discoveredArtists;
@@ -20,24 +26,36 @@ class PokedexProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   int get totalDiscovered => _discoveredArtists.length;
 
-  // Buscar artistas
-  Future<void> searchArtists(String query) async {
+  // Buscar artistas com debouncing
+  void searchArtists(String query) {
+    // Cancelar timer anterior se existir
+    _searchDebounceTimer?.cancel();
+    
     if (query.trim().isEmpty) {
       _searchResults = [];
       _searchQuery = '';
+      _isLoading = false;
       notifyListeners();
       return;
     }
 
-    _isLoading = true;
     _searchQuery = query;
+    _isLoading = true;
     notifyListeners();
 
+    // Configurar novo timer para debouncing
+    _searchDebounceTimer = Timer(RateLimitConfig.searchDebounceDelay, () async {
+      await _performSearch(query);
+    });
+  }
+
+  // Executar busca real
+  Future<void> _performSearch(String query) async {
     try {
       final results = await _spotifyService.searchArtistsAsPokemon(query);
       _searchResults = results;
     } catch (e) {
-      print('Erro na busca: $e');
+      DebugConfig.logError('Erro na busca', e);
       _searchResults = [];
     } finally {
       _isLoading = false;
@@ -167,5 +185,11 @@ class PokedexProvider extends ChangeNotifier {
     _selectedArtist = null;
     _nextArtistNumber = 1;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _searchDebounceTimer?.cancel();
+    super.dispose();
   }
 }

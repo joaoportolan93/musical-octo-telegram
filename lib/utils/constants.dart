@@ -38,6 +38,7 @@ class PokedexColors {
   static const Color funk = Color(0xFFFFD700);
   static const Color disco = Color(0xFFFF1493);
   static const Color gospel = Color(0xFF8A2BE2);
+  static const Color trap = Color(0x15a3c7); 
 
   // Cores de estatísticas
   static const Color hp = Color(0xFF4CAF50);
@@ -97,10 +98,10 @@ class PokedexTextStyles {
 
 class PokedexDimensions {
   // Espaçamentos modernos
-  static const double paddingSmall = 8.0;
-  static const double paddingMedium = 16.0;
-  static const double paddingLarge = 24.0;
-  static const double paddingXLarge = 32.0;
+  static const double paddingSmall = 6.0;
+  static const double paddingMedium = 12.0;
+  static const double paddingLarge = 18.0;
+  static const double paddingXLarge = 24.0;
 
   // Bordas arredondadas modernas
   static const double borderRadiusSmall = 8.0;

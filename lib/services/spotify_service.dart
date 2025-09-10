@@ -1,6 +1,10 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:collection';
 import 'package:http/http.dart' as http;
 import '../models/artist.dart';
+import '../utils/rate_limit_config.dart';
+import '../utils/debug_config.dart';
 
 class SpotifyService {
   static const String _clientId = 'c1a33f5d7ac24544b4b6e931dfc7cfef';
@@ -9,11 +13,79 @@ class SpotifyService {
 
   String? _accessToken;
   DateTime? _tokenExpiry;
+  
+  // Rate limiting
+  final Queue<DateTime> _requestTimes = Queue<DateTime>();
+  DateTime? _lastRequestTime;
 
   // Singleton pattern
   static final SpotifyService _instance = SpotifyService._internal();
   factory SpotifyService() => _instance;
   SpotifyService._internal();
+
+  // Rate limiting helper
+  Future<void> _enforceRateLimit() async {
+    final now = DateTime.now();
+    
+    // Remover requests antigos (mais de 1 minuto)
+    _requestTimes.removeWhere((time) => now.difference(time).inMinutes >= 1);
+    
+    // Verificar se excedeu o limite
+    if (_requestTimes.length >= RateLimitConfig.maxRequestsPerMinute) {
+      final oldestRequest = _requestTimes.first;
+      final waitTime = Duration(minutes: 1) - now.difference(oldestRequest);
+      if (waitTime.inMilliseconds > 0) {
+        DebugConfig.log('Rate limit atingido. Aguardando ${waitTime.inSeconds} segundos...');
+        await Future.delayed(waitTime);
+      }
+    }
+    
+    // Cooldown entre requests
+    if (_lastRequestTime != null) {
+      final timeSinceLastRequest = now.difference(_lastRequestTime!);
+      if (timeSinceLastRequest < RateLimitConfig.requestCooldown) {
+        final waitTime = RateLimitConfig.requestCooldown - timeSinceLastRequest;
+        await Future.delayed(waitTime);
+      }
+    }
+    
+    _requestTimes.add(DateTime.now());
+    _lastRequestTime = DateTime.now();
+  }
+
+  // Retry logic para requests com erro 429
+  Future<http.Response> _makeRequestWithRetry(
+    Future<http.Response> Function() requestFunction, {
+    int maxRetries = RateLimitConfig.maxRetries,
+  }) async {
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      await _enforceRateLimit();
+      
+      try {
+        final response = await requestFunction();
+        
+        if (response.statusCode == 429) {
+          // Rate limit atingido, aguardar mais tempo
+          final retryAfter = response.headers['retry-after'];
+          final waitTime = retryAfter != null 
+              ? Duration(seconds: int.parse(retryAfter))
+              : Duration(seconds: 5 * (attempt + 1)); // Backoff exponencial
+          
+          DebugConfig.log('Rate limit 429. Tentativa ${attempt + 1}/$maxRetries. Aguardando ${waitTime.inSeconds}s...');
+          await Future.delayed(waitTime);
+          continue;
+        }
+        
+        return response;
+      } catch (e) {
+        if (attempt == maxRetries - 1) rethrow;
+        DebugConfig.logError('Erro na tentativa ${attempt + 1}', e);
+        await Future.delayed(Duration(seconds: RateLimitConfig.baseRetryDelay.inSeconds * (attempt + 1)));
+      }
+    }
+    
+    throw Exception('Falha após $maxRetries tentativas');
+  }
 
   Future<String?> _getAccessToken() async {
     // Verificar se o token ainda é válido
@@ -24,15 +96,17 @@ class SpotifyService {
     }
 
     try {
-      final response = await http.post(
-        Uri.parse('https://accounts.spotify.com/api/token'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization':
-              'Basic ${base64Encode(utf8.encode('$_clientId:$_clientSecret'))}',
-        },
-        body: {'grant_type': 'client_credentials'},
-      );
+      final response = await _makeRequestWithRetry(() async {
+        return await http.post(
+          Uri.parse('https://accounts.spotify.com/api/token'),
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization':
+                'Basic ${base64Encode(utf8.encode('$_clientId:$_clientSecret'))}',
+          },
+          body: {'grant_type': 'client_credentials'},
+        );
+      });
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -42,11 +116,11 @@ class SpotifyService {
         );
         return _accessToken;
       } else {
-        print('Erro na autenticação Spotify: ${response.statusCode}');
+        DebugConfig.logError('Erro na autenticação Spotify', 'Status: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('Erro ao obter token de acesso: $e');
+      DebugConfig.logError('Erro ao obter token de acesso', e);
       return null;
     }
   }
@@ -142,7 +216,7 @@ class SpotifyService {
 
     // Se não conseguir token, usar dados mockados
     if (token == null) {
-      print('Usando dados mockados para demonstração');
+      DebugConfig.log('Usando dados mockados para demonstração');
       final mockArtists = _getMockArtists();
       return mockArtists
           .where(
@@ -154,16 +228,18 @@ class SpotifyService {
     }
 
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/search?q=$query&type=artist&limit=20'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
+      final response = await _makeRequestWithRetry(() async {
+        return await http.get(
+          Uri.parse('$_baseUrl/search?q=$query&type=artist&limit=20'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+      });
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data['artists']['items']);
       } else {
-        print('Erro na busca de artistas: ${response.statusCode}');
+        DebugConfig.logError('Erro na busca de artistas', 'Status: ${response.statusCode}');
         // Fallback para dados mockados
         final mockArtists = _getMockArtists();
         return mockArtists
@@ -175,7 +251,7 @@ class SpotifyService {
             .toList();
       }
     } catch (e) {
-      print('Erro ao buscar artistas: $e');
+      DebugConfig.logError('Erro ao buscar artistas', e);
       // Fallback para dados mockados
       final mockArtists = _getMockArtists();
       return mockArtists
@@ -201,15 +277,17 @@ class SpotifyService {
     }
 
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/artists/$artistId'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
+      final response = await _makeRequestWithRetry(() async {
+        return await http.get(
+          Uri.parse('$_baseUrl/artists/$artistId'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+      });
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
-        print('Erro ao obter detalhes do artista: ${response.statusCode}');
+        DebugConfig.logError('Erro ao obter detalhes do artista', 'Status: ${response.statusCode}');
         // Fallback para dados mockados
         final mockArtists = _getMockArtists();
         return mockArtists.firstWhere(
@@ -218,7 +296,7 @@ class SpotifyService {
         );
       }
     } catch (e) {
-      print('Erro ao obter detalhes do artista: $e');
+      DebugConfig.logError('Erro ao obter detalhes do artista', e);
       // Fallback para dados mockados
       final mockArtists = _getMockArtists();
       return mockArtists.firstWhere(
@@ -237,20 +315,22 @@ class SpotifyService {
     }
 
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/artists/$artistId/top-tracks?market=BR'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
+      final response = await _makeRequestWithRetry(() async {
+        return await http.get(
+          Uri.parse('$_baseUrl/artists/$artistId/top-tracks?market=BR'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+      });
 
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
-        print('Erro ao obter top tracks: ${response.statusCode}');
+        DebugConfig.logError('Erro ao obter top tracks', 'Status: ${response.statusCode}');
         // Fallback para dados mockados
         return _getMockTopTracks();
       }
     } catch (e) {
-      print('Erro ao obter top tracks: $e');
+      DebugConfig.logError('Erro ao obter top tracks', e);
       // Fallback para dados mockados
       return _getMockTopTracks();
     }
@@ -269,7 +349,7 @@ class SpotifyService {
       // Criar objeto Artist no formato Pokedex
       return Artist.fromSpotifyData(artistData, tracksData, number);
     } catch (e) {
-      print('Erro ao criar artista como Pokémon: $e');
+      DebugConfig.logError('Erro ao criar artista como Pokémon', e);
       return null;
     }
   }
@@ -279,21 +359,31 @@ class SpotifyService {
       final artistsData = await searchArtists(query);
       List<Artist> artists = [];
 
-      for (int i = 0; i < artistsData.length && i < 10; i++) {
-        final artistData = artistsData[i];
+      // Limitar artistas para reduzir requisições e melhorar performance
+      final limitedArtists = artistsData.take(RateLimitConfig.maxSearchResults).toList();
+
+      for (int i = 0; i < limitedArtists.length; i++) {
+        final artistData = limitedArtists[i];
         final artistId = artistData['id'];
 
         if (artistId != null) {
-          final artist = await getArtistAsPokemon(artistId, i + 1);
-          if (artist != null) {
-            artists.add(artist);
+          try {
+            // Usar número temporário para busca, será substituído ao adicionar à Pokedex
+            final artist = await getArtistAsPokemon(artistId, 0);
+            if (artist != null) {
+              artists.add(artist);
+            }
+          } catch (e) {
+            DebugConfig.logError('Erro ao processar artista ${artistData['name']}', e);
+            // Continuar com o próximo artista mesmo se um falhar
+            continue;
           }
         }
       }
 
       return artists;
     } catch (e) {
-      print('Erro ao buscar artistas como Pokémon: $e');
+      DebugConfig.logError('Erro ao buscar artistas como Pokémon', e);
       return [];
     }
   }

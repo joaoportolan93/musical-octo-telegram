@@ -17,12 +17,15 @@ A Pokedex Musical funciona exatamente como uma Pokedex tradicional, mas substitu
 ### ✅ Implementadas
 - **Tela Inicial**: Apresentação da Pokedex Musical com estatísticas
 - **Busca de Artistas**: Integração com Spotify API para buscar artistas
-- **Sistema de Numeração**: Numeração automática sequencial
+- **Sistema de Numeração**: Numeração automática sequencial (corrigido)
 - **Tela de Detalhes**: Layout fiel à Pokedex original
 - **Estatísticas Musicais**: Baseadas em dados reais do Spotify
 - **Interface Responsiva**: Funciona em diferentes tamanhos de tela
+- **Layout Web Otimizado**: Container responsivo para web sem afetar mobile
 - **Cache de Imagens**: Otimização de performance
 - **Gerenciamento de Estado**: Provider para controle de dados
+- **Rate Limiting**: Controle de requisições para API do Spotify
+- **Debouncing**: Otimização de busca com delay inteligente
 
 ### 🎨 Design Fiel à Pokedex Original
 - Cores vermelho/branco características
@@ -155,6 +158,22 @@ As estatísticas são calculadas dinamicamente baseadas em:
 - Comprimento do nome da música
 - Posição na lista de popularidade
 - Dados de popularidade do Spotify
+
+## 🔧 Correções Recentes
+
+### ✅ Problemas Resolvidos
+- **Numeração Sequencial**: Corrigido problema onde todos os artistas apareciam como "#001"
+- **Layout Web**: Implementado container responsivo para web sem afetar mobile
+- **Tamanhos de Interface**: Ajustados tamanhos de fontes, ícones e espaçamentos para web
+- **Rate Limiting**: Implementado controle de requisições para evitar erros 429
+- **Debouncing**: Adicionado delay inteligente na busca para melhor performance
+- **Logs de Debug**: Filtrados logs desnecessários do DebugService
+
+### 🎯 Melhorias de UX
+- Interface mais agradável no navegador web
+- Busca mais responsiva e eficiente
+- Menos erros no terminal durante desenvolvimento
+- Melhor organização visual dos componentes
 
 ## 🔮 Próximas Funcionalidades
 
