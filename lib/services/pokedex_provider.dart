@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/artist.dart';
 import '../utils/rate_limit_config.dart';
 import '../utils/debug_config.dart';
@@ -14,6 +15,12 @@ class PokedexProvider extends ChangeNotifier {
   bool _isLoading = false;
   String _searchQuery = '';
   int _nextArtistNumber = 1;
+  String _genreFilter = '';
+  String _sortMode = 'popularidade'; // 'popularidade' | 'alfabetico'
+  bool _isDarkTheme = false;
+  bool _favoritesOnly = false;
+  final Set<String> _favoriteIds = {};
+  final Map<String, List<Artist>> _searchCache = {};
   
   // Debouncing para busca
   Timer? _searchDebounceTimer;
@@ -25,6 +32,22 @@ class PokedexProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String get searchQuery => _searchQuery;
   int get totalDiscovered => _discoveredArtists.length;
+  String get genreFilter => _genreFilter;
+  String get sortMode => _sortMode;
+  bool get isDarkTheme => _isDarkTheme;
+  bool get favoritesOnly => _favoritesOnly;
+  List<String> get favoriteIds => _favoriteIds.toList(growable: false);
+
+  // Listas derivadas (filtradas e ordenadas)
+  List<Artist> get discoveredFiltered {
+    return _applySort(_applyFavorites(_applyGenre(_discoveredArtists)));
+  }
+
+  List<Artist> get searchFiltered {
+    return _applySort(_applyFavorites(_applyGenre(_searchResults)));
+  }
+
+  ThemeMode get themeMode => _isDarkTheme ? ThemeMode.dark : ThemeMode.light;
 
   // Buscar artistas com debouncing
   void searchArtists(String query) {
@@ -45,6 +68,13 @@ class PokedexProvider extends ChangeNotifier {
 
     // Configurar novo timer para debouncing
     _searchDebounceTimer = Timer(RateLimitConfig.searchDebounceDelay, () async {
+      // Cache simples de busca
+      if (_searchCache.containsKey(query)) {
+        _searchResults = _searchCache[query]!;
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
       await _performSearch(query);
     });
   }
@@ -54,6 +84,7 @@ class PokedexProvider extends ChangeNotifier {
     try {
       final results = await _spotifyService.searchArtistsAsPokemon(query);
       _searchResults = results;
+      _searchCache[query] = results;
     } catch (e) {
       DebugConfig.logError('Erro na busca', e);
       _searchResults = [];
@@ -88,6 +119,65 @@ class PokedexProvider extends ChangeNotifier {
       
       notifyListeners();
     }
+  }
+
+  // Filtros e ordenação
+  void setGenreFilter(String value) {
+    _genreFilter = value.trim();
+    notifyListeners();
+  }
+
+  void setSortMode(String mode) {
+    _sortMode = mode;
+    notifyListeners();
+  }
+
+  void toggleTheme([bool? enableDark]) {
+    if (enableDark != null) {
+      _isDarkTheme = enableDark;
+    } else {
+      _isDarkTheme = !_isDarkTheme;
+    }
+    notifyListeners();
+  }
+
+  void setFavoritesOnly(bool value) {
+    _favoritesOnly = value;
+    notifyListeners();
+  }
+
+  bool isFavorite(String artistId) => _favoriteIds.contains(artistId);
+
+  void toggleFavorite(String artistId) {
+    if (_favoriteIds.contains(artistId)) {
+      _favoriteIds.remove(artistId);
+    } else {
+      _favoriteIds.add(artistId);
+    }
+    notifyListeners();
+  }
+
+  List<Artist> _applyGenre(List<Artist> input) {
+    if (_genreFilter.isEmpty) return List<Artist>.from(input);
+    final f = _genreFilter.toLowerCase();
+    return input.where((a) => a.genres.any((g) => g.toLowerCase().contains(f))).toList();
+    }
+
+  List<Artist> _applySort(List<Artist> input) {
+    final list = List<Artist>.from(input);
+    if (_sortMode == 'alfabetico') {
+      list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    } else {
+      // popularidade: usar creativeData['popularity_score'] desc
+      list.sort((b, a) => (a.creativeData['popularity_score'] as int)
+          .compareTo(b.creativeData['popularity_score'] as int));
+    }
+    return list;
+  }
+
+  List<Artist> _applyFavorites(List<Artist> input) {
+    if (!_favoritesOnly) return List<Artist>.from(input);
+    return input.where((a) => _favoriteIds.contains(a.id)).toList();
   }
 
   // Selecionar artista
@@ -184,6 +274,12 @@ class PokedexProvider extends ChangeNotifier {
     _searchResults = [];
     _selectedArtist = null;
     _nextArtistNumber = 1;
+    _genreFilter = '';
+    _sortMode = 'popularidade';
+    _isDarkTheme = false;
+    _favoritesOnly = false;
+    _favoriteIds.clear();
+    _searchCache.clear();
     notifyListeners();
   }
 

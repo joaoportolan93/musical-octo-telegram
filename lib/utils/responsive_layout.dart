@@ -2,80 +2,76 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class ResponsiveLayout {
-  // Breakpoints para diferentes tamanhos de tela
-  static const double mobileBreakpoint = 768;
-  static const double tabletBreakpoint = 1024;
-  static const double desktopBreakpoint = 1440;
-  
-  // Detectar se é web
+  // Breakpoints solicitados
+  static const double mobileMaxWidth = 768;
+  static const double tabletMaxWidth = 1024;
+  static const double desktopMaxWidth = 1440;
+
   static bool get isWeb => kIsWeb;
-  
-  // Detectar se é mobile
+
   static bool isMobile(BuildContext context) {
-    return MediaQuery.of(context).size.width < mobileBreakpoint;
+    return MediaQuery.of(context).size.width < mobileMaxWidth;
   }
-  
-  // Detectar se é tablet
+
   static bool isTablet(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    return width >= mobileBreakpoint && width < tabletBreakpoint;
+    return width >= mobileMaxWidth && width < tabletMaxWidth;
   }
-  
-  // Detectar se é desktop/web
+
   static bool isDesktop(BuildContext context) {
-    return MediaQuery.of(context).size.width >= tabletBreakpoint;
+    return MediaQuery.of(context).size.width >= tabletMaxWidth;
   }
-  
-  // Obter largura máxima para web
+
+  // Header heights
+  static double headerHeight(BuildContext context) {
+    return isDesktop(context) ? 60 : 100;
+  }
+
+  // Grid columns based on width
+  static int gridColumns(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width >= 1440) return 4; // ultra-wide
+    if (width >= 1024) return 3; // desktop padrão
+    if (width >= 768) return 2; // tablet
+    return 2; // mobile mantém 2 por padrão
+  }
+
+  // Card sizing
+  static const double desktopCardWidth = 280;
+  static const double desktopCardHeight = 320;
+
   static double getMaxWidth(BuildContext context) {
-    if (isWeb) {
-      final screenWidth = MediaQuery.of(context).size.width;
-      if (screenWidth > desktopBreakpoint) {
-        return desktopBreakpoint;
-      } else if (screenWidth > tabletBreakpoint) {
-        return tabletBreakpoint;
-      }
-    }
-    return double.infinity;
+    if (!isWeb) return double.infinity;
+    final width = MediaQuery.of(context).size.width;
+    if (width > desktopMaxWidth) return desktopMaxWidth;
+    if (width > tabletMaxWidth) return tabletMaxWidth;
+    return width;
   }
-  
-  // Obter padding horizontal para web
+
   static double getHorizontalPadding(BuildContext context) {
-    if (isWeb && isDesktop(context)) {
-      return 22.0;
-    }
+    if (isWeb && isDesktop(context)) return 24.0;
+    if (isTablet(context)) return 16.0;
     return 12.0;
   }
-  
-  // Obter padding vertical para web
+
   static double getVerticalPadding(BuildContext context) {
-    if (isWeb && isDesktop(context)) {
-      return 16.0;
-    }
+    if (isWeb && isDesktop(context)) return 16.0;
+    if (isTablet(context)) return 12.0;
     return 8.0;
   }
-  
-  // Obter tamanho de fonte baseado na plataforma
+
   static double getFontSize(BuildContext context, double baseSize) {
-    if (isWeb && isDesktop(context)) {
-      return baseSize * 0.9; // Reduzir um pouco no web
-    }
+    if (isWeb && isDesktop(context)) return baseSize * 0.95;
     return baseSize;
   }
-  
-  // Obter tamanho de ícone baseado na plataforma
+
   static double getIconSize(BuildContext context, double baseSize) {
-    if (isWeb && isDesktop(context)) {
-      return baseSize * 0.8; // Reduzir ícones no web
-    }
+    if (isWeb && isDesktop(context)) return baseSize * 0.9;
     return baseSize;
   }
-  
-  // Obter espaçamento baseado na plataforma
+
   static double getSpacing(BuildContext context, double baseSpacing) {
-    if (isWeb && isDesktop(context)) {
-      return baseSpacing * 0.8; // Reduzir espaçamentos no web
-    }
+    if (isWeb && isDesktop(context)) return baseSpacing * 0.85;
     return baseSpacing;
   }
 }

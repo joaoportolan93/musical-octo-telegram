@@ -1,13 +1,112 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../services/pokedex_provider.dart';
 import '../widgets/artist_card.dart';
 import '../widgets/type_badge.dart';
 import '../widgets/responsive_widgets.dart';
 import '../utils/constants.dart';
-import '../utils/rate_limit_config.dart';
+// import '../utils/rate_limit_config.dart';
 import '../utils/responsive_layout.dart';
 import 'artist_detail_screen.dart';
+
+class _SearchFocusIntent extends Intent {
+  const _SearchFocusIntent();
+}
+
+class _DesktopSidebar extends StatelessWidget {
+  final Widget searchField;
+  final Widget Function() statsBuilder;
+  final Widget filters;
+  const _DesktopSidebar({required this.searchField, required this.statsBuilder, required this.filters});
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      color: theme.colorScheme.surface,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          searchField,
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              const Icon(Icons.brightness_6_rounded, size: 18, color: Colors.grey),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Modo escuro', style: PokedexTextStyles.body.copyWith(color: Colors.grey[800])),
+              ),
+              Switch(
+                value: context.watch<PokedexProvider>().isDarkTheme,
+                onChanged: (v) => context.read<PokedexProvider>().toggleTheme(v),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.bookmark, size: 18, color: Colors.grey),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Apenas favoritos', style: PokedexTextStyles.body.copyWith(color: Colors.grey[800])),
+              ),
+              Switch(
+                value: context.watch<PokedexProvider>().favoritesOnly,
+                onChanged: (v) => context.read<PokedexProvider>().setFavoritesOnly(v),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.analytics, size: 20, color: theme.colorScheme.secondary),
+              const SizedBox(width: 8),
+              Text('Estatísticas', style: PokedexTextStyles.subtitle),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(child: SingleChildScrollView(child: statsBuilder())),
+          const SizedBox(height: 16),
+          Text('Filtros', style: PokedexTextStyles.subtitle),
+          const SizedBox(height: 8),
+          filters,
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopFilters extends StatelessWidget {
+  final ValueChanged<String> onSortChanged;
+  final ValueChanged<String> onGenreChanged;
+  const _DesktopFilters({required this.onSortChanged, required this.onGenreChanged});
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          items: const [
+            DropdownMenuItem(value: 'popularidade', child: Text('Ordenar por Popularidade')),
+            DropdownMenuItem(value: 'alfabetico', child: Text('Ordenar A-Z')),
+          ],
+          value: context.watch<PokedexProvider>().sortMode,
+          onChanged: (v) => onSortChanged(v ?? 'popularidade'),
+          decoration: const InputDecoration(labelText: 'Ordenação'),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Filtrar por gênero',
+            prefixIcon: Icon(Icons.category),
+          ),
+          onChanged: onGenreChanged,
+        ),
+      ],
+    );
+  }
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,17 +117,27 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController _discoveredScrollController = ScrollController();
+  final ScrollController _searchScrollController = ScrollController();
   bool _showSearchResults = false;
+  int _visibleDiscovered = 20;
+  int _visibleSearch = 20;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _discoveredScrollController.addListener(_onDiscoveredScroll);
+    _searchScrollController.addListener(_onSearchScroll);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
+    _discoveredScrollController.dispose();
+    _searchScrollController.dispose();
     super.dispose();
   }
 
@@ -38,6 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
       provider.searchArtists(_searchController.text);
       setState(() {
         _showSearchResults = true;
+        _visibleSearch = 20;
       });
     } else {
       provider.clearSearchResults();
@@ -47,37 +157,133 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _onDiscoveredScroll() {
+    if (_discoveredScrollController.position.pixels >=
+        _discoveredScrollController.position.maxScrollExtent - 200) {
+      setState(() {
+        _visibleDiscovered += 20;
+      });
+    }
+  }
+
+  void _onSearchScroll() {
+    if (_searchScrollController.position.pixels >=
+        _searchScrollController.position.maxScrollExtent - 200) {
+      setState(() {
+        _visibleSearch += 20;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDesktop = ResponsiveLayout.isDesktop(context);
+
+    if (isDesktop) {
+      // Layout desktop com sidebar fixa
+      return Scaffold(
+        backgroundColor: PokedexColors.background,
+        body: SafeArea(
+          child: Shortcuts(
+            shortcuts: <LogicalKeySet, Intent>{
+              LogicalKeySet(LogicalKeyboardKey.slash): const _SearchFocusIntent(),
+              LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyK): const _SearchFocusIntent(),
+              LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyK): const _SearchFocusIntent(),
+            },
+            child: Actions(
+              actions: <Type, Action<Intent>>{
+                _SearchFocusIntent: CallbackAction<_SearchFocusIntent>(onInvoke: (intent) {
+                  _searchFocusNode.requestFocus();
+                  return null;
+                }),
+              },
+              child: Focus(
+                autofocus: true,
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 300,
+                      child: _DesktopSidebar(
+                        searchField: _buildModernSearchBar(),
+                        statsBuilder: () => Consumer<PokedexProvider>(
+                          builder: (context, provider, _) => _buildPokedexStats(provider),
+                        ),
+                        filters: _DesktopFilters(
+                          onSortChanged: (mode) => context.read<PokedexProvider>().setSortMode(mode),
+                          onGenreChanged: (genre) => context.read<PokedexProvider>().setGenreFilter(genre),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          SizedBox(height: ResponsiveLayout.headerHeight(context), child: _buildDesktopHeaderWithBreadcrumbs()),
+                          Expanded(
+                            child: Consumer<PokedexProvider>(
+                              builder: (context, provider, child) {
+                                if (provider.isLoading) {
+                                  return _buildSkeletonGrid();
+                                }
+                                if (_showSearchResults) {
+                                  return _buildSearchResults(provider);
+                                }
+                                return _buildPokedexContent(provider);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Layout mobile/tablet atual
     return Scaffold(
       backgroundColor: PokedexColors.background,
       body: SafeArea(
-        child: ResponsiveContainer(
-          child: Column(
-            children: [
-              // Cabeçalho moderno da Pokedex
-              _buildModernHeader(),
-
-              // Barra de busca moderna
-              _buildModernSearchBar(),
-
-              // Conteúdo principal
-              Expanded(
-                child: Consumer<PokedexProvider>(
-                  builder: (context, provider, child) {
-                    if (provider.isLoading) {
-                      return _buildModernLoadingState();
-                    }
-
-                    if (_showSearchResults) {
-                      return _buildSearchResults(provider);
-                    } else {
-                      return _buildPokedexContent(provider);
-                    }
-                  },
+        child: Shortcuts(
+          shortcuts: <LogicalKeySet, Intent>{
+            LogicalKeySet(LogicalKeyboardKey.slash): const _SearchFocusIntent(),
+            LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyK): const _SearchFocusIntent(),
+            LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyK): const _SearchFocusIntent(),
+          },
+          child: Actions(
+            actions: <Type, Action<Intent>>{
+              _SearchFocusIntent: CallbackAction<_SearchFocusIntent>(onInvoke: (intent) {
+                _searchFocusNode.requestFocus();
+                return null;
+              }),
+            },
+            child: Focus(
+              autofocus: true,
+              child: ResponsiveContainer(
+                child: Column(
+                  children: [
+                    _buildModernHeader(),
+                    _buildModernSearchBar(),
+                    Expanded(
+                      child: Consumer<PokedexProvider>(
+                        builder: (context, provider, child) {
+                          if (provider.isLoading) {
+                            return _buildSkeletonGrid();
+                          }
+                          if (_showSearchResults) {
+                            return _buildSearchResults(provider);
+                          }
+                          return _buildPokedexContent(provider);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -190,6 +396,7 @@ class _HomeScreenState extends State<HomeScreen> {
         border: Border.all(color: PokedexColors.lightGray, width: 1),
       ),
       child: TextField(
+        focusNode: _searchFocusNode,
         controller: _searchController,
         decoration: InputDecoration(
           hintText: PokedexStrings.searchHint,
@@ -213,45 +420,82 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildModernLoadingState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildDesktopHeaderWithBreadcrumbs() {
+    return Container(
+      color: PokedexColors.pureWhite,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: PokedexColors.vibrantYellow,
-              borderRadius: BorderRadius.circular(40),
-            ),
-            child: const Icon(
-              Icons.music_note,
-              size: 40,
-              color: PokedexColors.pureWhite,
-            ),
-          ),
-          const SizedBox(height: PokedexDimensions.paddingLarge),
-          CircularProgressIndicator(
-            color: PokedexColors.vibrantYellow,
-            strokeWidth: 3,
-          ),
-          const SizedBox(height: PokedexDimensions.paddingMedium),
-          Text(
-            RateLimitConfig.searchMessage,
-            style: PokedexTextStyles.body.copyWith(
-              color: PokedexColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: PokedexDimensions.paddingSmall),
-          Text(
-            RateLimitConfig.searchSubMessage,
-            style: PokedexTextStyles.small.copyWith(
-              color: PokedexColors.textLight,
-            ),
-          ),
+          const Icon(Icons.home, size: 20, color: Colors.grey),
+          const SizedBox(width: 8),
+          Text('Início', style: PokedexTextStyles.small.copyWith(color: Colors.grey[700])),
+          const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+          Text(_showSearchResults ? 'Busca' : 'Pokedex', style: PokedexTextStyles.body),
+          const Spacer(),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.settings, size: 20, color: Colors.grey),
+            tooltip: 'Configurações',
+          )
         ],
       ),
+    );
+  }
+
+  Widget _buildSkeletonGrid() {
+    return Builder(
+      builder: (context) {
+        final crossAxisCount = ResponsiveLayout.gridColumns(context);
+        final isDesktop = ResponsiveLayout.isDesktop(context);
+        final spacing = 20.0;
+        final childAspectRatio = isDesktop
+            ? ResponsiveLayout.desktopCardWidth / ResponsiveLayout.desktopCardHeight
+            : 0.75;
+        return GridView.builder(
+          padding: const EdgeInsets.all(PokedexDimensions.paddingMedium),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
+          ),
+          itemCount: 8,
+          itemBuilder: (_, __) => Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(PokedexDimensions.borderRadiusLarge),
+              border: Border.all(color: PokedexColors.lightGray, width: 1),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF0F0F0),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(PokedexDimensions.borderRadiusLarge),
+                      topRight: Radius.circular(PokedexDimensions.borderRadiusLarge),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF0F0F0),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(height: 12, width: 140, color: Color(0xFFF0F0F0)),
+                const SizedBox(height: 8),
+                Container(height: 10, width: 100, color: Color(0xFFF0F0F0)),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -313,7 +557,8 @@ class _HomeScreenState extends State<HomeScreen> {
         // Grid de resultados
         Expanded(
           child: ArtistGrid(
-            artists: provider.searchResults,
+            controller: _searchScrollController,
+            artists: provider.searchFiltered.take(_visibleSearch).toList(),
             onArtistTap: (artist) {
               provider.addArtistToPokedex(artist);
               Navigator.push(
@@ -343,7 +588,8 @@ class _HomeScreenState extends State<HomeScreen> {
         // Lista de artistas descobertos
         Expanded(
           child: ArtistGrid(
-            artists: provider.discoveredArtists,
+            controller: _discoveredScrollController,
+            artists: provider.discoveredFiltered.take(_visibleDiscovered).toList(),
             onArtistTap: (artist) {
               Navigator.push(
                 context,
@@ -398,16 +644,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final stats = provider.getPokedexStats();
 
     return Container(
-      margin: const EdgeInsets.all(PokedexDimensions.paddingMedium),
-      padding: const EdgeInsets.all(PokedexDimensions.paddingLarge),
+      margin: const EdgeInsets.all(PokedexDimensions.paddingSmall),
+      padding: const EdgeInsets.all(PokedexDimensions.paddingMedium),
       decoration: BoxDecoration(
-        color: PokedexColors.pureWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(
           PokedexDimensions.borderRadiusLarge,
         ),
         boxShadow: [
           BoxShadow(
-            color: PokedexColors.deepBlue.withOpacity(0.1),
+            color: Colors.black.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.2 : 0.06),
             blurRadius: ResponsiveLayout.getSpacing(context, 12),
             offset: const Offset(0, 4),
           ),
@@ -417,19 +663,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.analytics,
-                color: PokedexColors.vibrantYellow,
-                size: 24,
-              ),
-              const SizedBox(width: PokedexDimensions.paddingSmall),
-              Text(
-                PokedexStrings.pokedexStatsTitle,
-                style: PokedexTextStyles.subtitle,
-              ),
-            ],
+          Text(
+            PokedexStrings.pokedexStatsTitle,
+            style: PokedexTextStyles.subtitle,
           ),
           const SizedBox(height: PokedexDimensions.paddingMedium),
           Row(
@@ -438,7 +674,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildModernStatItem(
                 'Total',
                 '${stats['total']}',
-                PokedexColors.deepBlue,
+                Theme.of(context).colorScheme.primary,
               ),
               _buildModernStatItem(
                 'Popularidade',

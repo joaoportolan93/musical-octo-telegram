@@ -44,7 +44,8 @@ class PokedexMusicalApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => PokedexProvider(),
-      child: MaterialApp(
+      child: Consumer<PokedexProvider>(
+        builder: (context, provider, _) => MaterialApp(
         title: 'Pokedex Musical',
         debugShowCheckedModeBanner: false,
         // Configurações para reduzir erros do DebugService
@@ -109,7 +110,28 @@ class PokedexMusicalApp extends StatelessWidget {
             fillColor: Colors.white,
           ),
         ),
+        darkTheme: ThemeData.dark().copyWith(
+          scaffoldBackgroundColor: const Color(0xFF121212),
+          colorScheme: const ColorScheme.dark().copyWith(
+            primary: Colors.red[400],
+            secondary: Colors.red[300],
+            surface: const Color(0xFF1E1E1E),
+          ),
+          appBarTheme: AppBarTheme(
+            backgroundColor: Colors.red[400],
+            elevation: 0,
+            centerTitle: true,
+            titleTextStyle: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+        ),
+        themeMode: provider.themeMode,
         home: const HomeScreen(),
+      ),
       ),
     );
   }

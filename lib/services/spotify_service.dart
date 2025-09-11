@@ -62,7 +62,7 @@ class SpotifyService {
       await _enforceRateLimit();
       
       try {
-        final response = await requestFunction();
+        final response = await requestFunction().timeout(RateLimitConfig.requestTimeout);
         
         if (response.statusCode == 429) {
           // Rate limit atingido, aguardar mais tempo
@@ -362,24 +362,31 @@ class SpotifyService {
       // Limitar artistas para reduzir requisições e melhorar performance
       final limitedArtists = artistsData.take(RateLimitConfig.maxSearchResults).toList();
 
-      for (int i = 0; i < limitedArtists.length; i++) {
-        final artistData = limitedArtists[i];
-        final artistId = artistData['id'];
-
-        if (artistId != null) {
+      // Paralelizar com limite de concorrência (4 simultâneos)
+      const int concurrency = 4;
+      int index = 0;
+      Future<void> worker() async {
+        while (true) {
+          late Map<String, dynamic> artistData;
+          int currentIndex;
+          // seção crítica simples
+          if (index >= limitedArtists.length) break;
+          currentIndex = index;
+          index++;
+          artistData = limitedArtists[currentIndex];
+          final artistId = artistData['id'];
+          if (artistId == null) continue;
           try {
-            // Usar número temporário para busca, será substituído ao adicionar à Pokedex
             final artist = await getArtistAsPokemon(artistId, 0);
             if (artist != null) {
               artists.add(artist);
             }
           } catch (e) {
             DebugConfig.logError('Erro ao processar artista ${artistData['name']}', e);
-            // Continuar com o próximo artista mesmo se um falhar
-            continue;
           }
         }
       }
+      await Future.wait(List.generate(concurrency, (_) => worker()));
 
       return artists;
     } catch (e) {

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/artist.dart';
 import '../utils/constants.dart';
+import '../utils/responsive_layout.dart';
 import 'type_badge.dart';
 
-class ArtistCard extends StatelessWidget {
+class ArtistCard extends StatefulWidget {
   final Artist artist;
   final VoidCallback? onTap;
   final bool isDiscovered;
@@ -17,11 +18,19 @@ class ArtistCard extends StatelessWidget {
   });
 
   @override
+  State<ArtistCard> createState() => _ArtistCardState();
+}
+
+class _ArtistCardState extends State<ArtistCard> {
+  bool _hover = false;
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
+    final isDiscovered = widget.isDiscovered;
+    final Widget content = GestureDetector(
+      onTap: widget.onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 160),
         margin: const EdgeInsets.all(PokedexDimensions.paddingSmall),
         decoration: BoxDecoration(
           color: PokedexColors.pureWhite,
@@ -36,11 +45,10 @@ class ArtistCard extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: isDiscovered
-                  ? PokedexColors.vibrantYellow.withOpacity(0.2)
-                  : PokedexColors.deepBlue.withOpacity(0.1),
-              blurRadius: isDiscovered ? 12 : 8,
-              offset: const Offset(0, 4),
+              color: (isDiscovered ? PokedexColors.vibrantYellow : PokedexColors.deepBlue)
+                  .withOpacity(_hover ? 0.25 : 0.1),
+              blurRadius: _hover ? 14 : (isDiscovered ? 12 : 8),
+              offset: const Offset(0, 6),
             ),
           ],
         ),
@@ -72,7 +80,7 @@ class ArtistCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '#${artist.number.toString().padLeft(3, '0')}',
+                    '#${widget.artist.number.toString().padLeft(3, '0')}',
                     style: PokedexTextStyles.caption.copyWith(
                       color: PokedexColors.pureWhite,
                       fontWeight: FontWeight.w700,
@@ -112,10 +120,9 @@ class ArtistCard extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isDiscovered
-                        ? PokedexColors.vibrantYellow.withOpacity(0.3)
-                        : PokedexColors.deepBlue.withOpacity(0.1),
-                    blurRadius: 8,
+                    color: (isDiscovered ? PokedexColors.vibrantYellow : PokedexColors.deepBlue)
+                        .withOpacity(_hover ? 0.35 : 0.1),
+                    blurRadius: _hover ? 12 : 8,
                     offset: const Offset(0, 4),
                   ),
                 ],
@@ -124,9 +131,9 @@ class ArtistCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(
                   (PokedexDimensions.artistImageSize - 6) / 2,
                 ),
-                child: artist.imageUrl.isNotEmpty
+                child: widget.artist.imageUrl.isNotEmpty
                     ? CachedNetworkImage(
-                        imageUrl: artist.imageUrl,
+                        imageUrl: widget.artist.imageUrl,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
                           color: PokedexColors.lightGray,
@@ -162,7 +169,7 @@ class ArtistCard extends StatelessWidget {
                 horizontal: PokedexDimensions.paddingMedium,
               ),
               child: Text(
-                artist.name,
+                widget.artist.name,
                 textAlign: TextAlign.center,
                 style: PokedexTextStyles.body.copyWith(
                   fontWeight: FontWeight.w700,
@@ -180,7 +187,7 @@ class ArtistCard extends StatelessWidget {
               spacing: PokedexDimensions.paddingSmall,
               runSpacing: PokedexDimensions.paddingSmall,
               alignment: WrapAlignment.center,
-              children: artist.genres
+              children: widget.artist.genres
                   .take(2)
                   .map((genre) => TypeBadge(type: genre, fontSize: 10))
                   .toList(),
@@ -199,17 +206,17 @@ class ArtistCard extends StatelessWidget {
                 children: [
                   _buildModernStatItem(
                     'HP',
-                    artist.stats['HP'] ?? 0,
+                    widget.artist.stats['HP'] ?? 0,
                     PokedexColors.forestGreen,
                   ),
                   _buildModernStatItem(
                     'ATK',
-                    artist.stats['Attack'] ?? 0,
+                    widget.artist.stats['Attack'] ?? 0,
                     PokedexColors.fireRed,
                   ),
                   _buildModernStatItem(
                     'DEF',
-                    artist.stats['Defense'] ?? 0,
+                    widget.artist.stats['Defense'] ?? 0,
                     PokedexColors.deepBlue,
                   ),
                 ],
@@ -219,6 +226,7 @@ class ArtistCard extends StatelessWidget {
         ),
       ),
     );
+    return _wrapWithHover(content);
   }
 
   Widget _buildModernStatItem(String label, int value, Color color) {
@@ -249,29 +257,61 @@ class ArtistCard extends StatelessWidget {
       ],
     );
   }
+
+  Widget _wrapWithHover(Widget child) {
+    final scaled = AnimatedScale(
+      scale: _hover && ResponsiveLayout.isDesktop(context) ? 1.02 : 1.0,
+      duration: const Duration(milliseconds: 140),
+      curve: Curves.easeOut,
+      child: child,
+    );
+    if (ResponsiveLayout.isDesktop(context)) {
+      return SizedBox(
+        width: ResponsiveLayout.desktopCardWidth,
+        height: ResponsiveLayout.desktopCardHeight,
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _hover = true),
+          onExit: (_) => setState(() => _hover = false),
+          cursor: SystemMouseCursors.click,
+          child: scaled,
+        ),
+      );
+    }
+    return scaled;
+  }
 }
 
 class ArtistGrid extends StatelessWidget {
   final List<Artist> artists;
   final Function(Artist)? onArtistTap;
   final List<String> discoveredIds;
+  final ScrollController? controller;
 
   const ArtistGrid({
     super.key,
     required this.artists,
     this.onArtistTap,
     this.discoveredIds = const [],
+    this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
+    final crossAxisCount = ResponsiveLayout.gridColumns(context);
+    final isDesktop = ResponsiveLayout.isDesktop(context);
+    final spacing = 20.0;
+    final childAspectRatio = isDesktop
+        ? ResponsiveLayout.desktopCardWidth / ResponsiveLayout.desktopCardHeight
+        : 0.75;
+
     return GridView.builder(
+      controller: controller,
       padding: const EdgeInsets.all(PokedexDimensions.paddingMedium),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: PokedexDimensions.paddingSmall,
-        mainAxisSpacing: PokedexDimensions.paddingSmall,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: childAspectRatio,
+        crossAxisSpacing: spacing,
+        mainAxisSpacing: spacing,
       ),
       itemCount: artists.length,
       itemBuilder: (context, index) {
