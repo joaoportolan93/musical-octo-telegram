@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/artist.dart';
 import '../widgets/type_badge.dart';
-import '../widgets/stats_bar.dart';
+import '../widgets/music_stats_bar.dart';
 import '../utils/constants.dart';
 
 class ArtistDetailScreen extends StatelessWidget {
@@ -282,9 +282,9 @@ class ArtistDetailScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildModernCreativeData(
-                      'Popularidade',
-                      '${artist.creativeData['popularity_score']}',
-                      Icons.trending_up,
+                      'Ouvintes Mensais',
+                      _formatNumber(artist.creativeData['monthly_listeners'] ?? artist.creativeData['popularity_score'] * 1000),
+                      Icons.headphones,
                       PokedexColors.fireRed,
                     ),
                     _buildModernCreativeData(
@@ -365,22 +365,19 @@ class ArtistDetailScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.bar_chart,
-                color: PokedexColors.vibrantYellow,
-                size: 24,
+              const Text(
+                '🎵',
+                style: TextStyle(fontSize: 24),
               ),
               const SizedBox(width: PokedexDimensions.paddingSmall),
               Text(
-                PokedexStrings.statsTitle,
+                'Músicas Mais Famosas',
                 style: PokedexTextStyles.subtitle,
               ),
             ],
           ),
           const SizedBox(height: PokedexDimensions.paddingLarge),
-          ...artist.stats.entries.map(
-            (entry) => StatsBar(statName: entry.key, value: entry.value),
-          ),
+          MusicStatsChart(topTracks: artist.topTracks),
         ],
       ),
     );

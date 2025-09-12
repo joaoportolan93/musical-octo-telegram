@@ -285,7 +285,12 @@ class SpotifyService {
       });
 
       if (response.statusCode == 200) {
-        return json.decode(response.body);
+        final artistData = json.decode(response.body);
+        
+        // Log para debug - verificar se há dados de ouvintes mensais
+        DebugConfig.log('Dados do artista ${artistData['name']}: ${artistData.keys.toList()}');
+        
+        return artistData;
       } else {
         DebugConfig.logError('Erro ao obter detalhes do artista', 'Status: ${response.statusCode}');
         // Fallback para dados mockados

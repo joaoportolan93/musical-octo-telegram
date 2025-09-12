@@ -88,10 +88,10 @@ class _DesktopFilters extends StatelessWidget {
       children: [
         DropdownButtonFormField<String>(
           items: const [
-            DropdownMenuItem(value: 'popularidade', child: Text('Ordenar por Popularidade')),
+            DropdownMenuItem(value: 'popularidade', child: Text('Ordenar por Ouvintes Mensais')),
             DropdownMenuItem(value: 'alfabetico', child: Text('Ordenar A-Z')),
           ],
-          value: context.watch<PokedexProvider>().sortMode,
+          initialValue: context.watch<PokedexProvider>().sortMode,
           onChanged: (v) => onSortChanged(v ?? 'popularidade'),
           decoration: const InputDecoration(labelText: 'Ordenação'),
         ),
@@ -677,8 +677,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 Theme.of(context).colorScheme.primary,
               ),
               _buildModernStatItem(
-                'Popularidade',
-                '${stats['avgPopularity']}',
+                'Ouvintes Mensais',
+                _formatNumber(stats['avgMonthlyListeners'] ?? stats['avgPopularity'] * 1000),
                 PokedexColors.forestGreen,
               ),
               _buildModernStatItem(
@@ -745,5 +745,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     );
+  }
+
+  String _formatNumber(dynamic number) {
+    if (number is int) {
+      if (number >= 1000000) {
+        return '${(number / 1000000).toStringAsFixed(1)}M';
+      } else if (number >= 1000) {
+        return '${(number / 1000).toStringAsFixed(1)}K';
+      }
+      return number.toString();
+    }
+    return '0';
   }
 }

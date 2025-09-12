@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/artist.dart';
 import '../utils/rate_limit_config.dart';
@@ -168,9 +167,9 @@ class PokedexProvider extends ChangeNotifier {
     if (_sortMode == 'alfabetico') {
       list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     } else {
-      // popularidade: usar creativeData['popularity_score'] desc
-      list.sort((b, a) => (a.creativeData['popularity_score'] as int)
-          .compareTo(b.creativeData['popularity_score'] as int));
+      // popularidade: usar creativeData['monthly_listeners'] desc
+      list.sort((b, a) => (a.creativeData['monthly_listeners'] ?? (a.creativeData['popularity_score'] as int) * 1000)
+          .compareTo(b.creativeData['monthly_listeners'] ?? (b.creativeData['popularity_score'] as int) * 1000));
     }
     return list;
   }
@@ -238,15 +237,15 @@ class PokedexProvider extends ChangeNotifier {
       }
     }
 
-    // Calcular popularidade média
-    double avgPopularity = _discoveredArtists
-        .map((a) => a.creativeData['popularity_score'] as int)
+    // Calcular ouvintes mensais médios
+    double avgMonthlyListeners = _discoveredArtists
+        .map((a) => a.creativeData['monthly_listeners'] ?? (a.creativeData['popularity_score'] as int) * 1000)
         .reduce((a, b) => a + b) / _discoveredArtists.length;
 
     return {
       'total': _discoveredArtists.length,
       'genres': genres,
-      'avgPopularity': avgPopularity.round(),
+      'avgMonthlyListeners': avgMonthlyListeners.round(),
       'completion': (_discoveredArtists.length / 1000) * 100, // Assumindo 1000 como total
     };
   }

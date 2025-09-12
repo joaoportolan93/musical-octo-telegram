@@ -55,6 +55,7 @@ class Artist {
       'career_years': _calculateCareerYears(artistData),
       'albums_count': _calculateAlbumsCount(artistData),
       'popularity_score': artistData['popularity'] ?? 0,
+      'monthly_listeners': _calculateMonthlyListeners(artistData),
       'followers': artistData['followers']?['total'] ?? 0,
     };
 
@@ -94,6 +95,62 @@ class Artist {
     // Simular número de álbuns baseado na popularidade
     int popularity = artistData['popularity'] ?? 50;
     return (popularity / 15).round() + 1;
+  }
+
+  static int _calculateMonthlyListeners(Map<String, dynamic> artistData) {
+    // A API pública do Spotify não fornece ouvintes mensais diretamente
+    // Vamos usar uma estimativa mais realista baseada em padrões reais
+    
+    int popularity = artistData['popularity'] ?? 50;
+    int followers = artistData['followers']?['total'] ?? 0;
+    
+    // Log para debug
+    print('DEBUG: Calculando ouvintes mensais para ${artistData['name']}');
+    print('DEBUG: Popularidade: $popularity, Seguidores: $followers');
+    
+    // Estimativa baseada em padrões reais do Spotify
+    double estimatedListeners;
+    
+    if (followers > 0) {
+      // Proporções mais realistas baseadas em dados reais
+      if (followers >= 50000000) { // 50M+ seguidores (Drake, Taylor Swift)
+        estimatedListeners = followers * 0.4; // ~40% dos seguidores
+      } else if (followers >= 20000000) { // 20M+ seguidores (Billie Eilish, Ed Sheeran)
+        estimatedListeners = followers * 0.5; // ~50% dos seguidores
+      } else if (followers >= 10000000) { // 10M+ seguidores (Matuê, Anitta)
+        estimatedListeners = followers * 0.6; // ~60% dos seguidores
+      } else if (followers >= 5000000) { // 5M+ seguidores
+        estimatedListeners = followers * 0.7; // ~70% dos seguidores
+      } else if (followers >= 1000000) { // 1M+ seguidores
+        estimatedListeners = followers * 0.8; // ~80% dos seguidores
+      } else if (followers >= 100000) { // 100K+ seguidores
+        estimatedListeners = followers * 1.0; // ~100% dos seguidores
+      } else {
+        estimatedListeners = followers * 1.5; // ~150% dos seguidores
+      }
+    } else {
+      // Fallback baseado na popularidade com ranges mais realistas
+      if (popularity >= 90) {
+        estimatedListeners = 15000000; // ~15M para artistas muito populares
+      } else if (popularity >= 80) {
+        estimatedListeners = 8000000; // ~8M para artistas populares
+      } else if (popularity >= 70) {
+        estimatedListeners = 4000000; // ~4M para artistas moderadamente populares
+      } else if (popularity >= 60) {
+        estimatedListeners = 2000000; // ~2M para artistas em crescimento
+      } else {
+        estimatedListeners = popularity * 100000; // 100K por ponto de popularidade
+      }
+    }
+    
+    // Ajuste final baseado na popularidade (mais sutil)
+    double popularityAdjustment = 1.0 + ((popularity - 50) / 100.0) * 0.3;
+    estimatedListeners *= popularityAdjustment;
+    
+    final result = estimatedListeners.round().clamp(100000, 100000000);
+    print('DEBUG: Ouvintes mensais estimados: $result');
+    
+    return result;
   }
 
   static List<String> _extractAlbums(Map<String, dynamic> tracksData) {
