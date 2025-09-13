@@ -211,6 +211,23 @@ class SpotifyService {
     };
   }
 
+  // Simulação de países para artistas
+  final Map<String, String> _artistCountries = {
+    'Eminem': 'EUA',
+    'Taylor Swift': 'EUA',
+    'Drake': 'Canadá',
+    'Ed Sheeran': 'Reino Unido',
+    'The Weeknd': 'Canadá',
+    'Matuê': 'Brasil',
+    'Anitta': 'Brasil',
+    'Kendrick Lamar': 'EUA',
+    'Bruno Mars': 'EUA',
+  };
+
+  String _getArtistCountry(String artistName) {
+    return _artistCountries[artistName] ?? 'Desconhecido';
+  }
+
   Future<List<Map<String, dynamic>>> searchArtists(String query) async {
     final token = await _getAccessToken();
 
@@ -352,7 +369,8 @@ class SpotifyService {
       if (tracksData == null) return null;
 
       // Criar objeto Artist no formato Pokedex
-      return Artist.fromSpotifyData(artistData, tracksData, number);
+      final country = _getArtistCountry(artistData['name']);
+        return Artist.fromSpotifyData(artistData, tracksData, number, country);
     } catch (e) {
       DebugConfig.logError('Erro ao criar artista como Pokémon', e);
       return null;

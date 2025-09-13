@@ -8,6 +8,7 @@ class Artist {
   final Map<String, int> stats;
   final Map<String, dynamic> creativeData;
   final List<String> albums;
+  final String country; // Novo campo adicionado
 
   Artist({
     required this.id,
@@ -19,9 +20,10 @@ class Artist {
     required this.stats,
     required this.creativeData,
     required this.albums,
+    required this.country, // Inicialização do novo campo
   });
 
-  factory Artist.fromSpotifyData(Map<String, dynamic> artistData, Map<String, dynamic> tracksData, int number) {
+  factory Artist.fromSpotifyData(Map<String, dynamic> artistData, Map<String, dynamic> tracksData, int number, String country) {
     // Extrair gêneros principais (limitado a 3 para simular tipos de Pokémon)
     List<String> genres = (artistData['genres'] as List<dynamic>? ?? [])
         .take(3)
@@ -71,6 +73,7 @@ class Artist {
       stats: stats,
       creativeData: creativeData,
       albums: _extractAlbums(tracksData),
+      country: country,
     );
   }
 
@@ -179,6 +182,7 @@ class Artist {
       'stats': stats,
       'creativeData': creativeData,
       'albums': albums,
+      'country': country, // Serialização do novo campo
     };
   }
 
@@ -193,6 +197,7 @@ class Artist {
       stats: Map<String, int>.from(json['stats']),
       creativeData: Map<String, dynamic>.from(json['creativeData']),
       albums: List<String>.from(json['albums']),
+      country: json['country'], // Desserialização do novo campo
     );
   }
 }

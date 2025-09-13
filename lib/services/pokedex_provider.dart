@@ -108,6 +108,7 @@ class PokedexProvider extends ChangeNotifier {
         stats: artist.stats,
         creativeData: artist.creativeData,
         albums: artist.albums,
+        country: artist.country,
       );
       
       _discoveredArtists.add(numberedArtist);
@@ -229,24 +230,41 @@ class PokedexProvider extends ChangeNotifier {
       };
     }
 
-    // Contar gêneros
-    Map<String, int> genres = {};
+    // Calcular estatísticas da Pokedex
+    final Set<String> uniqueGenres = {};
+    final Set<String> uniqueCountries = {};
+    int totalMonthlyListeners = 0;
+    int totalPopularity = 0;
+
     for (var artist in _discoveredArtists) {
-      for (var genre in artist.genres) {
-        genres[genre] = (genres[genre] ?? 0) + 1;
-      }
+      uniqueGenres.addAll(artist.genres);
+      uniqueCountries.add(artist.country);
+      totalMonthlyListeners += artist.stats['monthlyListeners'] ?? 0;
+      totalPopularity += artist.stats['popularity'] ?? 0;
     }
 
-    // Calcular ouvintes mensais médios
-    double avgMonthlyListeners = _discoveredArtists
-        .map((a) => a.creativeData['monthly_listeners'] ?? (a.creativeData['popularity_score'] as int) * 1000)
-        .reduce((a, b) => a + b) / _discoveredArtists.length;
+    final double avgPopularity = _discoveredArtists.isNotEmpty ? totalPopularity / _discoveredArtists.length : 0;
+    final double avgMonthlyListeners = _discoveredArtists.isNotEmpty ? totalMonthlyListeners / _discoveredArtists.length : 0;
+
+    // Mapear gêneros para contagem
+    final Map<String, int> genreCounts = {};
+    for (var artist in _discoveredArtists) {
+      for (var genre in artist.genres) {
+        genreCounts[genre] = (genreCounts[genre] ?? 0) + 1;
+      }
+    }
+    // Ordenar gêneros por contagem
+    final sortedGenres = genreCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final Map<String, int> topGenres = Map.fromEntries(sortedGenres);
 
     return {
       'total': _discoveredArtists.length,
-      'genres': genres,
-      'avgMonthlyListeners': avgMonthlyListeners.round(),
-      'completion': (_discoveredArtists.length / 1000) * 100, // Assumindo 1000 como total
+      'genres': topGenres,
+      'countries': uniqueCountries.length,
+      'completion': (_discoveredArtists.length / 1000) * 100, // Exemplo: 1000 artistas no total
+      'avgPopularity': avgPopularity,
+      'avgMonthlyListeners': avgMonthlyListeners,
     };
   }
 
