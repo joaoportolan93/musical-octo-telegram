@@ -222,6 +222,8 @@ class SpotifyService {
     'Anitta': 'Brasil',
     'Kendrick Lamar': 'EUA',
     'Bruno Mars': 'EUA',
+    'Joji': 'Japão',
+    'Travis Scott': 'EUA',
   };
 
   String _getArtistCountry(String artistName) {
@@ -339,7 +341,7 @@ class SpotifyService {
     try {
       final response = await _makeRequestWithRetry(() async {
         return await http.get(
-          Uri.parse('$_baseUrl/artists/$artistId/top-tracks?market=BR'),
+          Uri.parse('$_baseUrl/artists/$artistId/top-tracks?market=US'),
           headers: {'Authorization': 'Bearer $token'},
         );
       });

@@ -80,6 +80,13 @@ class _DesktopFilters extends StatelessWidget {
   const _DesktopFilters({required this.onSortChanged, required this.onGenreChanged});
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final inputDecoration = theme.inputDecorationTheme;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(PokedexDimensions.borderRadiusMedium),
+      borderSide: BorderSide(color: theme.dividerColor),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -90,14 +97,22 @@ class _DesktopFilters extends StatelessWidget {
           ],
           initialValue: context.watch<PokedexProvider>().sortMode,
           onChanged: (v) => onSortChanged(v ?? 'popularidade'),
-          decoration: const InputDecoration(labelText: 'Ordenar por:'),
+          decoration: InputDecoration(
+            labelText: 'Ordenar por:',
+            border: border,
+            enabledBorder: border,
+            focusedBorder: border.copyWith(borderSide: BorderSide(color: theme.primaryColor)),
+          ).applyDefaults(inputDecoration),
         ),
         const SizedBox(height: 12),
         TextField(
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Filtrar por gênero',
             prefixIcon: Icon(Icons.category),
-          ),
+            border: border,
+            enabledBorder: border,
+            focusedBorder: border.copyWith(borderSide: BorderSide(color: theme.primaryColor)),
+          ).applyDefaults(inputDecoration),
           onChanged: onGenreChanged,
         ),
       ],
@@ -334,10 +349,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          // Botão de filtro
           IconButton(
             onPressed: () {
-              // TODO: Implementar filtros
             },
             icon: Icon(
               Icons.filter_list,
@@ -351,24 +364,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildModernSearchBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: EdgeInsets.all(ResponsiveLayout.getSpacing(context, PokedexDimensions.paddingMedium)),
       padding: EdgeInsets.symmetric(
         horizontal: ResponsiveLayout.getSpacing(context, PokedexDimensions.paddingMedium),
       ),
       decoration: BoxDecoration(
-        color: PokedexColors.pureWhite,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(
           ResponsiveLayout.getSpacing(context, PokedexDimensions.borderRadiusXLarge),
         ),
         boxShadow: [
           BoxShadow(
-            color: PokedexColors.deepBlue.withOpacity(0.1),
+            color: (isDark ? Colors.black : PokedexColors.deepBlue).withOpacity(0.1),
             blurRadius: ResponsiveLayout.getSpacing(context, 12),
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: PokedexColors.lightGray, width: 1),
+        border: Border.all(color: isDark ? Colors.grey[800]! : PokedexColors.lightGray, width: 1),
       ),
       child: TextField(
         focusNode: _searchFocusNode,

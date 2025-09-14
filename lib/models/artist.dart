@@ -1,13 +1,15 @@
+import './album.dart';
+
 class Artist {
   final String id;
   final String name;
   final int number;
   final String imageUrl;
   final List<String> genres;
-  final List<String> topTracks;
+  final List<Map<String, String>> topTracks;
   final Map<String, int> stats;
   final Map<String, dynamic> creativeData;
-  final List<String> albums;
+  final List<Album> albums;
   final String country; // Novo campo adicionado
 
   Artist({
@@ -31,11 +33,14 @@ class Artist {
         .toList();
 
     // Extrair top tracks
-    List<String> topTracks = [];
+    List<Map<String, String>> topTracks = [];
     if (tracksData['tracks'] != null) {
       topTracks = (tracksData['tracks'] as List<dynamic>)
           .take(8)
-          .map((track) => track['name'] as String)
+          .map((track) => {
+                'name': track['name'] as String,
+                'preview_url': track['preview_url'] as String? ?? ''
+              })
           .toList();
     }
 
@@ -43,12 +48,12 @@ class Artist {
     Map<String, int> stats = {};
     if (topTracks.isNotEmpty) {
       stats = {
-        'HP': _calculateStat(topTracks, 0),
-        'Attack': _calculateStat(topTracks, 1),
-        'Defense': _calculateStat(topTracks, 2),
-        'Sp. Attack': _calculateStat(topTracks, 3),
-        'Sp. Defense': _calculateStat(topTracks, 4),
-        'Speed': _calculateStat(topTracks, 5),
+        'HP': _calculateStat(topTracks.map((t) => t['name']!).toList(), 0),
+        'Attack': _calculateStat(topTracks.map((t) => t['name']!).toList(), 1),
+        'Defense': _calculateStat(topTracks.map((t) => t['name']!).toList(), 2),
+        'Sp. Attack': _calculateStat(topTracks.map((t) => t['name']!).toList(), 3),
+        'Sp. Defense': _calculateStat(topTracks.map((t) => t['name']!).toList(), 4),
+        'Speed': _calculateStat(topTracks.map((t) => t['name']!).toList(), 5),
       };
     }
 
@@ -156,14 +161,19 @@ class Artist {
     return result;
   }
 
-  static List<String> _extractAlbums(Map<String, dynamic> tracksData) {
-    List<String> albums = [];
+  static List<Album> _extractAlbums(Map<String, dynamic> tracksData) {
+    List<Album> albums = [];
     if (tracksData['tracks'] != null) {
       for (var track in tracksData['tracks']) {
         if (track['album'] != null && track['album']['name'] != null) {
           String albumName = track['album']['name'];
-          if (!albums.contains(albumName)) {
-            albums.add(albumName);
+          if (!albums.any((album) => album.name == albumName)) {
+            albums.add(Album(
+              name: albumName,
+              imageUrl: track['album']['images']?.isNotEmpty == true
+                  ? track['album']['images'][0]['url']
+                  : '',
+            ));
           }
         }
       }
@@ -181,7 +191,7 @@ class Artist {
       'topTracks': topTracks,
       'stats': stats,
       'creativeData': creativeData,
-      'albums': albums,
+      'albums': albums.map((album) => {'name': album.name, 'imageUrl': album.imageUrl}).toList(),
       'country': country, // Serialização do novo campo
     };
   }
@@ -193,10 +203,19 @@ class Artist {
       number: json['number'],
       imageUrl: json['imageUrl'],
       genres: List<String>.from(json['genres']),
-      topTracks: List<String>.from(json['topTracks']),
+      topTracks: List<Map<String, String>>.from(
+          (json['topTracks'] as List<dynamic>).map(
+              (track) => Map<String, String>.from(track),
+          ),
+      ),
       stats: Map<String, int>.from(json['stats']),
       creativeData: Map<String, dynamic>.from(json['creativeData']),
-      albums: List<String>.from(json['albums']),
+      albums: (json['albums'] as List<dynamic>)
+          .map((albumData) => Album(
+                name: albumData['name'],
+                imageUrl: albumData['imageUrl'],
+              ))
+          .toList(),
       country: json['country'], // Desserialização do novo campo
     );
   }

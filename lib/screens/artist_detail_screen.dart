@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
+import 'package:audioplayers/audioplayers.dart';
 
 import '../models/artist.dart';
 
@@ -20,6 +21,9 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
   late Animation<double> _fadeAnimation;
   ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _playingTrackUrl;
+  PlayerState _playerState = PlayerState.stopped;
 
   @override
   void initState() {
@@ -39,6 +43,17 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
         _scrollOffset = _scrollController.offset;
       });
     });
+
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      if (mounted) {
+        setState(() {
+          _playerState = state;
+          if (state == PlayerState.completed || state == PlayerState.stopped) {
+            _playingTrackUrl = null;
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -46,6 +61,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
     _tabController.dispose();
     _animationController.dispose();
     _scrollController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -402,13 +418,18 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
   }
 
   Widget _buildMusicsList() {
-    final List<String> topMusics = widget.artist.topTracks;
+    final List<Map<String, String>> topMusics = widget.artist.topTracks;
 
     return ListView.builder(
       padding: EdgeInsets.all(24),
       itemCount: topMusics.length,
       itemBuilder: (context, index) {
-        final musicTitle = topMusics[index];
+        final music = topMusics[index];
+        final musicTitle = music['name']!;
+        final previewUrl = music['preview_url']!;
+        final isPlaying = _playingTrackUrl == previewUrl && _playerState == PlayerState.playing;
+        final canPlay = previewUrl.isNotEmpty;
+
         return Container(
           margin: EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
@@ -453,7 +474,26 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.play_arrow, color: Colors.white54, size: 20),
+                if (canPlay)
+                  IconButton(
+                    icon: Icon(
+                      isPlaying ? Icons.pause_circle_filled : Icons.play_arrow,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () async {
+                      if (isPlaying) {
+                        await _audioPlayer.pause();
+                      } else {
+                        await _audioPlayer.play(UrlSource(previewUrl));
+                        setState(() {
+                          _playingTrackUrl = previewUrl;
+                        });
+                      }
+                    },
+                  )
+                else
+                  Icon(Icons.play_disabled, color: Colors.white24, size: 28),
                 SizedBox(width: 8),
                 Icon(Icons.more_vert, color: Colors.white54, size: 20),
               ],
@@ -468,14 +508,14 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
     return GridView.builder(
       padding: EdgeInsets.all(24),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        crossAxisCount: 3,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
         childAspectRatio: 0.75,
       ),
       itemCount: widget.artist.albums.length,
       itemBuilder: (context, index) {
-        final albumName = widget.artist.albums[index];
+        final album = widget.artist.albums[index];
         return Container(
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.05),
@@ -489,8 +529,8 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     image: DecorationImage(
-                      image: NetworkImage(widget.artist.imageUrl.isNotEmpty
-                          ? widget.artist.imageUrl
+                      image: NetworkImage(album.imageUrl.isNotEmpty
+                          ? album.imageUrl
                           : 'https://via.placeholder.com/200'),
                       fit: BoxFit.cover,
                     ),
@@ -502,7 +542,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                 child: Column(
                   children: [
                     Text(
-                      albumName,
+                      album.name,
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

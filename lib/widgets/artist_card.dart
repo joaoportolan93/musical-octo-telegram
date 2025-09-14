@@ -1,9 +1,19 @@
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/artist.dart';
 import '../utils/constants.dart';
 import '../utils/responsive_layout.dart';
 import 'type_badge.dart';
+
+  String _formatCompact(int value) {
+    if (value >= 1000000) {
+      return (value / 1000000).toStringAsFixed(1).replaceAll('.0', '') + 'm';
+    } else if (value >= 1000) {
+      return (value / 1000).toStringAsFixed(1).replaceAll('.0', '') + 'k';
+    }
+    return value.toString();
+  }
 
 class ArtistCard extends StatefulWidget {
   final Artist artist;
@@ -195,7 +205,7 @@ class _ArtistCardState extends State<ArtistCard> {
 
             const SizedBox(height: PokedexDimensions.paddingMedium),
 
-            // Estatísticas resumidas modernas
+            // Estatísticas resumidas modernas com ícones
             Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: PokedexDimensions.paddingMedium,
@@ -204,20 +214,22 @@ class _ArtistCardState extends State<ArtistCard> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildModernStatItem(
-                    'HP',
-                    widget.artist.stats['HP'] ?? 0,
-                    PokedexColors.forestGreen,
+                  _buildModernStatIconItem(
+                    icon: Icons.headphones,
+                    value: widget.artist.creativeData['monthly_listeners'] ?? 0,
+                    color: PokedexColors.forestGreen,
+                    formatter: _formatCompact,
                   ),
-                  _buildModernStatItem(
-                    'ATK',
-                    widget.artist.stats['Attack'] ?? 0,
-                    PokedexColors.fireRed,
+                  _buildModernStatIconItem(
+                    icon: Icons.album,
+                    value: widget.artist.creativeData['albums_count'] ?? 0,
+                    color: PokedexColors.fireRed,
                   ),
-                  _buildModernStatItem(
-                    'DEF',
-                    widget.artist.stats['Defense'] ?? 0,
-                    PokedexColors.deepBlue,
+                  _buildModernStatIconItem(
+                    icon: Icons.people,
+                    value: widget.artist.creativeData['followers'] ?? 0,
+                    color: PokedexColors.deepBlue,
+                    formatter: _formatCompact,
                   ),
                 ],
               ),
@@ -229,16 +241,10 @@ class _ArtistCardState extends State<ArtistCard> {
     return _wrapWithHover(content);
   }
 
-  Widget _buildModernStatItem(String label, int value, Color color) {
+  Widget _buildModernStatIconItem({required IconData icon, required int value, required Color color, String Function(int)? formatter}) {
     return Column(
       children: [
-        Text(
-          label,
-          style: PokedexTextStyles.small.copyWith(
-            color: PokedexColors.textSecondary,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        Icon(icon, size: 20, color: PokedexColors.textSecondary),
         const SizedBox(height: 2),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -247,7 +253,7 @@ class _ArtistCardState extends State<ArtistCard> {
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
-            '$value',
+            formatter != null ? formatter(value) : value.toString(),
             style: PokedexTextStyles.small.copyWith(
               fontWeight: FontWeight.w700,
               color: color,
