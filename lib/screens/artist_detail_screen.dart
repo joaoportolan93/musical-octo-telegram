@@ -244,7 +244,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  'Artista Musical',
+                                  'Artista MelodyDex',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 14,

@@ -1,5 +1,5 @@
-name: pokedex_menos_pokedex_que_tem
-description: "Pokedex Musical - Uma Pokedex para artistas musicais usando Spotify API"
+name: melodydex
+description: "MelodyDex - Uma Pokedex para artistas musicais usando Spotify API"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -50,7 +50,9 @@ dependencies:
   # Animações suaves
   lottie: ^2.7.0
   
-  # Gradientes e efeitos visuais
+
+  # Variáveis de ambiente
+  flutter_dotenv: ^5.1.0
   flutter_staggered_animations: ^1.1.1
   audioplayers: ^6.5.1
 

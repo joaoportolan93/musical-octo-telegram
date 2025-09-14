@@ -1,14 +1,17 @@
+
 import 'dart:convert';
 import 'dart:async';
 import 'dart:collection';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/artist.dart';
 import '../utils/rate_limit_config.dart';
 import '../utils/debug_config.dart';
 
+
 class SpotifyService {
-  static const String _clientId = 'c1a33f5d7ac24544b4b6e931dfc7cfef';
-  static const String _clientSecret = 'ca9aa91d8a584f66bd29960b75a502f7';
+  static final String _clientId = dotenv.env['SPOTIFY_CLIENT_ID'] ?? '';
+  static final String _clientSecret = dotenv.env['SPOTIFY_CLIENT_SECRET'] ?? '';
   static const String _baseUrl = 'https://api.spotify.com/v1';
 
   String? _accessToken;

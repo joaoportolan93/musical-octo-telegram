@@ -122,9 +122,9 @@ class PokedexDimensions {
 }
 
 class PokedexStrings {
-  static const String appTitle = 'POKÉDEX MUSICAL';
+  static const String appTitle = 'MelodyDex';
   static const String searchHint = 'Buscar artista...';
-  static const String emptyPokedexTitle = 'Sua Pokedex Musical está vazia!';
+  static const String emptyPokedexTitle = 'Seu MelodyDex está vazio!';
   static const String emptyPokedexMessage =
       'Use a barra de busca para descobrir\nseus primeiros artistas!';
   static const String noResultsFound = 'Nenhum artista encontrado';
@@ -132,7 +132,7 @@ class PokedexStrings {
   static const String statsTitle = 'Base Stats';
   static const String topTracksTitle = 'Top Músicas';
   static const String albumsTitle = 'Álbuns Principais';
-  static const String pokedexStatsTitle = 'Estatísticas da Pokedex';
+  static const String pokedexStatsTitle = 'Estatísticas do MelodyDex';
   static const String discoveredArtists = 'Artistas Descobertos';
   static const String searchResults = 'Resultados da busca';
 }

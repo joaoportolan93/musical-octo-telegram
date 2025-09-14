@@ -8,12 +8,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:pokedex_menos_pokedex_que_tem/main.dart';
+import 'package:melodydex/main.dart';
 
 void main() {
-  testWidgets('Pokedex Musical smoke test', (WidgetTester tester) async {
+  testWidgets('MelodyDex smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const PokedexMusicalApp());
+  await tester.pumpWidget(const MelodyDexApp());
 
     // Verify that the app starts without crashing
     expect(find.byType(MaterialApp), findsOneWidget);

@@ -1,6 +1,9 @@
+
 # 🎵 Pokedex Musical - Flutter App
 
 Uma aplicação Flutter que transforma a experiência clássica da Pokedex em uma ferramenta para descobrir e catalogar artistas musicais usando a API do Spotify.
+
+> ⚠️ **Atenção:** As credenciais da API do Spotify (Client ID e Client Secret) **NUNCA** devem ser expostas publicamente ou incluídas diretamente no código-fonte. Utilize variáveis de ambiente ou arquivos de configuração ignorados pelo versionamento (ex: `.env`, `secrets.dart` no `.gitignore`).
 
 ## 🎯 Conceito
 
@@ -72,12 +75,13 @@ dependencies:
   flutter_staggered_animations: ^1.1.1
 ```
 
+
 ## 🔧 Configuração
 
 ### 1. Clone o repositório
 ```bash
 git clone [url-do-repositorio]
-cd pokedex_menos_pokedex_que_tem
+cd musical-octo-telegram
 ```
 
 ### 2. Instale as dependências
@@ -85,7 +89,15 @@ cd pokedex_menos_pokedex_que_tem
 flutter pub get
 ```
 
-### 3. Execute o aplicativo
+### 3. Configure as credenciais do Spotify
+Crie um arquivo `.env` (ou `secrets.dart` ignorado pelo git) na raiz do projeto **NÃO COMMITADO** contendo:
+```
+SPOTIFY_CLIENT_ID=seu_client_id
+SPOTIFY_CLIENT_SECRET=seu_client_secret
+```
+No código, carregue essas variáveis usando um pacote como [`flutter_dotenv`](https://pub.dev/packages/flutter_dotenv) ou similar.
+
+### 4. Execute o aplicativo
 ```bash
 flutter run
 ```
@@ -99,12 +111,12 @@ flutter run
 
 ### Explorar Pokedex
 1. Artistas descobertos aparecem na tela principal
-2. Toque em qualquer artista para ver detalhes completos
+O MelodyDex funciona exatamente como uma Pokedex tradicional, mas substitui Pokémon por artistas musicais:
 3. Acompanhe suas estatísticas de descoberta
 
 ### Mapeamento de Dados
 
-| Pokedex Original | Pokedex Musical |
+**Tela Inicial**: Apresentação do MelodyDex com estatísticas
 |------------------|-----------------|
 | Nome + Número | Nome do Artista + #Número |
 | Foto | Imagem do Artista |
@@ -118,25 +130,26 @@ flutter run
 | Speed | 6ª música mais popular |
 | Movimentos | Top 8 músicas do artista |
 
+
 ## 🏗️ Arquitetura
 
 ```
 lib/
 ├── main.dart                 # Ponto de entrada
 ├── models/
-│   └── artist.dart          # Modelo de dados do artista
+│   └── artist.dart           # Modelo de dados do artista
 ├── services/
-│   ├── spotify_service.dart # Integração com Spotify API
-│   └── pokedex_provider.dart # Gerenciamento de estado
+cd MelodyDex
+│   └── melodydex_provider.dart # Gerenciamento de estado do MelodyDex
 ├── screens/
-│   ├── home_screen.dart     # Tela principal
-│   └── artist_detail_screen.dart # Tela de detalhes
+│   ├── home_screen.dart      # Tela principal do MelodyDex
+│   └── artist_detail_screen.dart # Tela de detalhes do artista
 ├── widgets/
-│   ├── artist_card.dart     # Card do artista
-│   ├── type_badge.dart      # Badge de tipo/gênero
-│   └── stats_bar.dart       # Barra de estatísticas
+│   ├── artist_card.dart      # Card do artista
+│   ├── type_badge.dart       # Badge de tipo/gênero
+│   └── stats_bar.dart        # Barra de estatísticas
 └── utils/
-    └── constants.dart       # Constantes e cores
+  └── constants.dart        # Constantes e cores
 ```
 
 ## 🎨 Personalização
@@ -159,25 +172,12 @@ As estatísticas são calculadas dinamicamente baseadas em:
 - Posição na lista de popularidade
 - Dados de popularidade do Spotify
 
-## 🔧 Correções Recentes
-
-### ✅ Problemas Resolvidos
 - **Numeração Sequencial**: Corrigido problema onde todos os artistas apareciam como "#001"
 - **Layout Web**: Implementado container responsivo para web sem afetar mobile
 - **Tamanhos de Interface**: Ajustados tamanhos de fontes, ícones e espaçamentos para web
 - **Rate Limiting**: Implementado controle de requisições para evitar erros 429
-- **Debouncing**: Adicionado delay inteligente na busca para melhor performance
-- **Logs de Debug**: Filtrados logs desnecessários do DebugService
-
-### 🎯 Melhorias de UX
-- Interface mais agradável no navegador web
-- Busca mais responsiva e eficiente
 - Menos erros no terminal durante desenvolvimento
 - Melhor organização visual dos componentes
-
-## 🔮 Próximas Funcionalidades
-
-- [ ] Persistência local de dados
 - [ ] Filtros por gênero musical
 - [ ] Comparação entre artistas
 - [ ] Modo escuro
@@ -185,15 +185,13 @@ As estatísticas são calculadas dinamicamente baseadas em:
 - [ ] Compartilhamento de descobertas
 - [ ] Lista de favoritos
 
+
 ## 🤝 Contribuição
 
 1. Faça um fork do projeto
 2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
 3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
 
-## 📄 Licença
 
 Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 

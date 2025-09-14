@@ -329,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ResponsiveText(
-                'POKÉDEX MUSICAL',
+                'MelodyDex',
                 style: PokedexTextStyles.displayTitle.copyWith(
                   color: PokedexColors.pureWhite,
                   fontSize: ResponsiveLayout.getFontSize(context, 24),
@@ -611,7 +611,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 24),
           const Text(
-            'Sua Pokedex Musical está vazia!',
+            'Seu MelodyDex está vazio!',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,

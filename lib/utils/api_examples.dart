@@ -1,4 +1,4 @@
-// Exemplos de uso da API Spotify na Pokedex Musical
+// Exemplos de uso da API Spotify no MelodyDex
 // Este arquivo demonstra como a integração funciona
 
 import '../services/spotify_service.dart';
@@ -63,9 +63,9 @@ class ApiExamples {
   // Exemplo 4: Demonstrar mapeamento de dados
   static void demonstrateDataMapping() {
     print('''
-=== MAPEAMENTO POKEDEX → MÚSICA ===
+=== MAPEAMENTO MELODYDEX ===
 
-POKEDEX ORIGINAL          | POKEDEX MUSICAL
+POKEDEX ORIGINAL          | MELODYDEX
 -------------------------|-------------------------
 Nome + Número             | Nome do Artista + #Número
 Foto                      | Imagem do Artista

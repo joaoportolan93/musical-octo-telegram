@@ -34,11 +34,11 @@ void main() {
     );
   }
   
-  runApp(const PokedexMusicalApp());
+  runApp(const MelodyDexApp());
 }
 
-class PokedexMusicalApp extends StatelessWidget {
-  const PokedexMusicalApp({super.key});
+class MelodyDexApp extends StatelessWidget {
+  const MelodyDexApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +46,7 @@ class PokedexMusicalApp extends StatelessWidget {
       create: (context) => PokedexProvider(),
       child: Consumer<PokedexProvider>(
         builder: (context, provider, _) => MaterialApp(
-        title: 'Pokedex Musical',
+  title: 'MelodyDex',
         debugShowCheckedModeBanner: false,
         // Configurações para reduzir erros do DebugService
         builder: (context, child) {
