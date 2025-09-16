@@ -5,17 +5,18 @@ import 'package:provider/provider.dart';
 import 'services/pokedex_provider.dart';
 import 'screens/home_screen.dart';
 import 'utils/debug_config.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
-  // Configurações para reduzir erros do DebugService
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Inicializar configurações de debug
+  await dotenv.load();
   DebugConfig.initialize();
-  
-  // Suprimir logs específicos do DebugService
+
+  // Logar variáveis do Spotify para debug
+  print('SPOTIFY_CLIENT_ID: \'${dotenv.env['SPOTIFY_CLIENT_ID']}\'');
+  print('SPOTIFY_CLIENT_SECRET: \'${dotenv.env['SPOTIFY_CLIENT_SECRET']}\'');
+
   if (kDebugMode) {
-    // Redirecionar debugPrint para filtrar logs problemáticos
     debugPrint = (String? message, {int? wrapWidth}) {
       if (message != null && 
           !message.contains('DebugService') && 
@@ -24,8 +25,6 @@ void main() {
         print(message);
       }
     };
-    
-    // Configurar para reduzir spam de logs
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -33,7 +32,6 @@ void main() {
       ),
     );
   }
-  
   runApp(const MelodyDexApp());
 }
 

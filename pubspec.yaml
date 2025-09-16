@@ -82,6 +82,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - .env
 
   # Fonts modernas para o design (usando fontes do sistema)
   # Roboto e Montserrat já estão disponíveis no Flutter por padrão
